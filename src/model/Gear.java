@@ -22,4 +22,12 @@ public abstract class Gear {
     public void setCount(int count) {
         this.count = count;
     }
+
+    @Override
+    public String toString() {
+        return "Gear{" +
+                "type='" + type + '\'' +
+                ", count=" + count +
+                '}';
+    }
 }

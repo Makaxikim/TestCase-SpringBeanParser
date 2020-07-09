@@ -7,6 +7,11 @@ public class Car {
     public Car() {
     }
 
+    public Car(Engine engine, Gear gear) {
+        this.engine = engine;
+        this.gear = gear;
+    }
+
     public Engine getEngine() {
         return engine;
     }
