@@ -1,5 +1,6 @@
 package di;
 
+import di.annotations.Auto;
 import di.exceptions.InvalidConfigurationException;
 import di.xml.model.Bean;
 import di.xml.model.Property;
@@ -89,6 +90,7 @@ public class Context {
         for (Bean bean : beans) {
             Class<?> aClass = Class.forName(bean.getClassName());
             Object instance = aClass.newInstance();
+            processAnnotation(aClass, instance);
             for (Property property : bean.getProperties().values()) {
                 Field field = getField(aClass, property.getName());
                 if (field == null) {
@@ -112,6 +114,26 @@ public class Context {
                 }
             }
             objectsById.put(bean.getId(), instance);
+        }
+    }
+
+    private void processAnnotation(Class<?> aClass, Object instance) throws InvalidConfigurationException,
+            IllegalAccessException {
+        Field[] fields = aClass.getDeclaredFields();
+        for(Field field : fields) {
+            if (field.isAnnotationPresent(Auto.class)) {
+                Auto annotation = field.getAnnotation(Auto.class);
+                String fieldName = field.getName();
+                if (annotation.isRequired() && !objectsById.containsKey(fieldName)) {
+                    throw new InvalidConfigurationException("Failed @Auto " + fieldName + " " + field.getType());
+                } else {
+                    if (objectsById.containsKey(fieldName)) {
+                        Object o = objectsById.get(fieldName);
+                        field.setAccessible(true);
+                        field.set(instance, o);
+                    }
+                }
+            }
         }
     }
 
