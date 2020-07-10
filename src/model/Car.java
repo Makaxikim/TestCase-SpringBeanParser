@@ -5,6 +5,7 @@ import di.annotations.Auto;
 public class Car {
     @Auto
     private Engine engine;
+    @Auto
     private Gear gear;
 
     public Car() {

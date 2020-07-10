@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Context {
     private static final String TAG_BEAN = "bean";
@@ -37,6 +38,10 @@ public class Context {
                 | InvalidConfigurationException e) {
             e.printStackTrace();
         }
+    }
+
+    public <T> T getBean(String beanId, Class<T> beanClass) {
+        return (T) objectsById.get(beanId);
     }
 
     private void parseXml(String xmlPath) throws ParserConfigurationException, IOException, SAXException,
@@ -87,10 +92,13 @@ public class Context {
 
     private void instantiateBeans() throws IllegalAccessException, InstantiationException, ClassNotFoundException,
             NoSuchFieldException, InvalidConfigurationException {
+        List<Bean> notInstantiatedBeans = new ArrayList<>();
         for (Bean bean : beans) {
             Class<?> aClass = Class.forName(bean.getClassName());
             Object instance = aClass.newInstance();
-            processAnnotation(aClass, instance);
+            if (bean.getProperties().isEmpty()) {
+                notInstantiatedBeans.add(bean);
+            }
             for (Property property : bean.getProperties().values()) {
                 Field field = getField(aClass, property.getName());
                 if (field == null) {
@@ -102,10 +110,10 @@ public class Context {
                         String refName = property.getValue();
                         if (objectsById.containsKey(refName)) {
                             field.set(instance, objectsById.get(refName));
-                            break;
                         } else {
-                            throw new InvalidConfigurationException("Failed to instantiate bean");
+                            notInstantiatedBeans.add(bean);
                         }
+                        break;
                     case VALUE:
                         field.set(instance, convert(field.getType().getName(), property.getValue()));
                         break;
@@ -115,12 +123,37 @@ public class Context {
             }
             objectsById.put(bean.getId(), instance);
         }
+        instantiateBeansNullFields(notInstantiatedBeans);
+    }
+
+    private void instantiateBeansNullFields(List<Bean> beans) throws NoSuchFieldException,
+            InvalidConfigurationException, IllegalAccessException {
+        for (Bean bean : beans) {
+            Object nonInstantiated = objectsById.get(bean.getId());
+            Class<?> aClass = nonInstantiated.getClass();
+            processAnnotation(aClass, nonInstantiated);
+            List<Property> propertiesRefType = bean.getProperties().values().stream()
+                    .filter(property -> property.getType().equals(ValueType.REF)).collect(Collectors.toList());
+            for (Property property : propertiesRefType) {
+                Field field = getField(aClass, property.getName());
+                if (field == null) {
+                    throw new NoSuchFieldException();
+                }
+                field.setAccessible(true);
+                String refName = property.getValue();
+                if (objectsById.containsKey(refName)) {
+                    field.set(nonInstantiated, objectsById.get(refName));
+                } else {
+                    throw new InvalidConfigurationException("Failed to instantiate");
+                }
+            }
+        }
     }
 
     private void processAnnotation(Class<?> aClass, Object instance) throws InvalidConfigurationException,
             IllegalAccessException {
         Field[] fields = aClass.getDeclaredFields();
-        for(Field field : fields) {
+        for (Field field : fields) {
             if (field.isAnnotationPresent(Auto.class)) {
                 Auto annotation = field.getAnnotation(Auto.class);
                 String fieldName = field.getName();
@@ -181,9 +214,5 @@ public class Context {
                 return getField(superclass, fieldName);
             }
         }
-    }
-
-    public <T> T getBean(String beanId, Class<T> beanClass) {
-        return (T) objectsById.get(beanId);
     }
 }
