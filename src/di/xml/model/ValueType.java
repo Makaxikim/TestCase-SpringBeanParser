@@ -1,4 +1,4 @@
-package di;
+package di.xml.model;
 
 public enum ValueType {
     VALUE, REF

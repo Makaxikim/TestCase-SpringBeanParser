@@ -1,5 +1,9 @@
 package di;
 
+import di.exceptions.InvalidConfigurationException;
+import di.xml.model.Bean;
+import di.xml.model.Property;
+import di.xml.model.ValueType;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
@@ -93,7 +97,13 @@ public class Context {
                 field.setAccessible(true);
                 switch (property.getType()) {
                     case REF:
-                        break;
+                        String refName = property.getValue();
+                        if (objectsById.containsKey(refName)) {
+                            field.set(instance, objectsById.get(refName));
+                            break;
+                        } else {
+                            throw new InvalidConfigurationException("Failed to instantiate bean");
+                        }
                     case VALUE:
                         field.set(instance, convert(field.getType().getName(), property.getValue()));
                         break;
@@ -108,31 +118,33 @@ public class Context {
     private Object convert(String typeName, String value) throws InvalidConfigurationException {
         switch (typeName) {
             case "byte":
-            case "Byte":
+            case "java.lang.Byte":
                 return Byte.valueOf(value);
             case "short":
-            case "Short":
+            case "java.lang.Short":
                 return Short.valueOf(value);
             case "int":
-            case "Integer":
+            case "java.lang.Integer":
                 return Integer.valueOf(value);
             case "long":
-            case "Long":
+            case "java.lang.Long":
                 return Long.valueOf(value);
             case "double":
-            case "Double":
+            case "java.lang.Double":
                 return Double.valueOf(value);
             case "float":
-            case "Float":
+            case "java.lang.Float":
                 return Float.valueOf(value);
             case "boolean":
-            case "Boolean":
+            case "java.lang.Boolean":
                 return Boolean.valueOf(value);
             case "char":
-            case "Character":
+            case "java.lang.Character":
                 return value.charAt(0);
+            case "java.lang.String":
+                return value;
             default:
-                throw new InvalidConfigurationException("There is no such primitive type " + typeName);
+                throw new InvalidConfigurationException("There is no such type " + typeName);
         }
     }
 

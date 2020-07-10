@@ -1,6 +1,9 @@
 package model;
 
+import di.annotations.Auto;
+
 public class Car {
+    @Auto
     private Engine engine;
     private Gear gear;
 

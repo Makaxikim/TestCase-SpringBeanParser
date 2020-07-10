@@ -1,4 +1,4 @@
-package di;
+package di.xml.model;
 
 import java.util.Map;
 

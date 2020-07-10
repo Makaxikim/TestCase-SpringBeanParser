@@ -4,6 +4,7 @@
     </bean>
     <bean id="gear" class="model.ManualGear">
         <property name="count" value="5"/>
+        <property name="type" value="Manual"/>
     </bean>
     <bean id="car" class="model.Car">
         <property name="engine" ref="engine"/>
